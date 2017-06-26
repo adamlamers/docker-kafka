@@ -23,6 +23,7 @@ Expected environment variables:
 	The ID to give the zookeeper instance. (int)
 
 Additional environment variables:
+
     LOG_RETENTION_HOURS
         The number of hours to keep a log file before deleting in (in hours) (int)
     LOG_RETENTION_BYTES
