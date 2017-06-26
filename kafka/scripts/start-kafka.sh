@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Optional ENV variables:
 # * ADVERTISED_HOST: the external ip for the container, e.g. `docker-machine ip \`docker-machine active\``
@@ -7,6 +7,36 @@
 # * LOG_RETENTION_HOURS: the minimum age of a log file in hours to be eligible for deletion (default is 168, for 1 week)
 # * LOG_RETENTION_BYTES: configure the size at which segments are pruned from the log, (default is 1073741824, for 1GB)
 # * NUM_PARTITIONS: configure the default number of log partitions per topic
+# * BROKER_ID: set the broker ID of this container
+# * ZK_SERVERS: the zookeeper servers to connect the internal instance of zookeeper to
+
+# Configure Zookeeper
+
+if [ ! -z "$ZK_SERVERS" ]; then
+    if [ -z "$ZK_ID" ]; then
+        echo "ZK_ID must be set to this zookeeper instance's ID"
+        exit -1
+    fi
+
+    #Set zookeeper instance id
+    echo "$ZK_ID" | tee /var/lib/zookeeper/myid
+
+    #initialize config
+    sed -i '/^server./d' /etc/zookeeper/conf/zoo.cfg
+
+    IFS=',' read -r -a ZOOKEEPER_SERVERS_ARRAY <<< "$ZK_SERVERS"
+    export ZOOKEEPER_SERVERS_ARRAY=$ZOOKEEPER_SERVERS_ARRAY
+
+    for index in "${!ZOOKEEPER_SERVERS_ARRAY[@]}"
+    do
+        ZKID=$(($index+1))
+        ZKIP=${ZOOKEEPER_SERVERS_ARRAY[index]}
+        if [ $ZKID == $ZOOKEEPER_ID ]; then
+	    ZKIP=0.0.0.0
+        fi
+        echo "server.${ZKID}=${ZKIP}:2888:3888" >> /etc/zookeeper/conf/zoo.cfg
+    done
+fi
 
 # Configure advertised host/port if we run in helios
 if [ ! -z "$HELIOS_PORT_kafka" ]; then
@@ -47,6 +77,14 @@ if [ ! -z "$ZK_CHROOT" ]; then
 
     # configure kafka
     sed -r -i "s/(zookeeper.connect)=(.*)/\1=localhost:2181\/$ZK_CHROOT/g" $KAFKA_HOME/config/server.properties
+fi
+
+if [ ! -z "$BROKER_ID" ]; then
+    sed -r -i "s/(broker.id)=(.*)/\1=$BROKER_ID/g" $KAFKA_HOME/config/server.properties
+fi
+
+if [ ! -z "$ZK_CONNECT" ]; then
+    sed -r -i "s/(zookeeper.connect)=(.*)/\1=$ZK_CONNECT/g" $KAFKA_HOME/config/server.properties
 fi
 
 # Allow specification of log retention policies
