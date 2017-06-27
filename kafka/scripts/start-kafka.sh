@@ -9,6 +9,8 @@
 # * NUM_PARTITIONS: configure the default number of log partitions per topic
 # * BROKER_ID: set the broker ID of this container
 # * ZK_SERVERS: the zookeeper servers to connect the internal instance of zookeeper to
+# * ZK_CONNECT: the zookeeper servers to configure Kafka to connect to (zookeeper.connect)
+# * DEFAULT_REPLICATION_FACTOR: Kafka configuration option for the default replication factor of automatically created topics
 
 # Configure Zookeeper
 
@@ -101,6 +103,10 @@ fi
 if [ ! -z "$NUM_PARTITIONS" ]; then
     echo "default number of partition: $NUM_PARTITIONS"
     sed -r -i "s/(num.partitions)=(.*)/\1=$NUM_PARTITIONS/g" $KAFKA_HOME/config/server.properties
+fi
+
+if [ ! -z "$DEFAULT_REPLICATION_FACTOR" ]; then
+    echo "default.replication.factor=${DEFAULT_REPLICATION_FACTOR}" >> $KAFKA_HOME/config/server.properties
 fi
 
 # Enable/disable auto creation of topics
